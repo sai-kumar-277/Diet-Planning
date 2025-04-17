@@ -1,0 +1,52 @@
+<div class="container">
+    <h3 class="mb-4">Health Details</h3>
+    <form id="healthForm">
+      <div class="mb-3">
+        <label for="condition" class="form-label">Select Health Condition</label>
+        <select class="form-select" id="condition" name="condition" required>
+          <option value="">-- Select Condition --</option>
+          <option value="Cancer">Cancer</option>
+          <option value="Eye Health">Eye Health</option>
+          <option value="Heart Health">Heart Health</option>
+          <option value="Diabetes">Diabetes</option>
+        </select>
+      </div>
+  
+      <div class="mb-3">
+        <label for="schedule" class="form-label">Tablet Schedule</label>
+        <input type="text" class="form-control" id="schedule" name="schedule" placeholder="e.g. 8:00 AM, 2:00 PM, 9:00 PM" required>
+      </div>
+  
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  
+    <div id="healthSuccess" class="alert alert-success mt-3" style="display: none;">
+      Health information saved successfully!
+    </div>
+  
+    <div class="mt-4" id="savedHealthInfo">
+      <!-- Filled with saved health data after submission -->
+    </div>
+  </div>
+  
+  <script>
+    $(document).ready(function () {
+      $('#healthForm').submit(function (e) {
+        e.preventDefault();
+        const formData = {
+          condition: $('#condition').val(),
+          schedule: $('#schedule').val()
+        };
+  
+        $.post('/save_health', formData, function (response) {
+          $('#healthSuccess').show().delay(3000).fadeOut();
+          $('#savedHealthInfo').html(`
+            <h5 class="mt-4">Saved Info</h5>
+            <p><strong>Condition:</strong> ${formData.condition}</p>
+            <p><strong>Tablet Schedule:</strong> ${formData.schedule}</p>
+          `);
+        });
+      });
+    });
+  </script>
+  

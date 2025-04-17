@@ -1,0 +1,82 @@
+<h2>Profile</h2>
+
+<!-- Success Alert -->
+<div id="success-alert" class="alert alert-success d-none" role="alert">
+  Profile successfully updated!
+</div>
+
+<form id="profile-form">
+  <div class="mb-2">
+    <label>Name</label>
+    <input type="text" name="name" class="form-control" value="{{ user.name }}">
+  </div>
+  <div class="mb-2">
+    <label>Age</label>
+    <input type="number" name="age" class="form-control" value="{{ user.age }}">
+  </div>
+  <div class="mb-2">
+    <label>Height (cm)</label>
+    <input type="number" name="height" id="height" class="form-control" value="{{ profile.height if profile else '' }}" oninput="calculateBMI()">
+  </div>
+  <div class="mb-2">
+    <label>Weight (kg)</label>
+    <input type="number" name="weight" id="weight" class="form-control" value="{{ profile.weight if profile else '' }}" oninput="calculateBMI()">
+  </div>
+  <div class="mb-2">
+    <label>Gender</label>
+    <select name="gender" class="form-control">
+      <option value="Male" {% if profile and profile.gender == "Male" %}selected{% endif %}>Male</option>
+      <option value="Female" {% if profile and profile.gender == "Female" %}selected{% endif %}>Female</option>
+    </select>
+  </div>
+  <div class="mb-2">
+    <label>Goals</label>
+    <textarea name="goals" class="form-control">{{ profile.goals if profile else '' }}</textarea>
+  </div>
+  <p><strong>BMI:</strong> <span id="bmi"></span></p>
+  <button type="submit" class="btn btn-primary">Update Profile</button>
+</form>
+
+<!-- Updated Profile Details -->
+<hr>
+<h4>Current Profile Details</h4>
+<div id="updated-profile-details">
+  <p><strong>Name:</strong> {{ user.name }}</p>
+  <p><strong>Age:</strong> {{ user.age }}</p>
+  <p><strong>Height:</strong> {{ profile.height if profile else '' }} cm</p>
+  <p><strong>Weight:</strong> {{ profile.weight if profile else '' }} kg</p>
+  <p><strong>Gender:</strong> {{ profile.gender if profile else '' }}</p>
+  <p><strong>Goals:</strong> {{ profile.goals if profile else '' }}</p>
+</div>
+
+<script>
+  function calculateBMI() {
+    let height = parseFloat(document.getElementById('height').value);
+    let weight = parseFloat(document.getElementById('weight').value);
+    if(height && weight) {
+      let bmi = weight / ((height / 100) ** 2);
+      document.getElementById('bmi').innerText = bmi.toFixed(2);
+    }
+  }
+  window.onload = calculateBMI;
+
+  // AJAX Form Submission
+  $('#profile-form').on('submit', function(e) {
+    e.preventDefault();
+    $.ajax({
+      type: 'POST',
+      url: '/update_profile',
+      data: $('#profile-form').serialize(),
+      success: function(response) {
+        // Show success alert
+        $('#success-alert').removeClass('d-none');
+
+        // Replace the updated profile details
+        $('#updated-profile-details').html(response.updated_html);
+      },
+      error: function() {
+        alert('Error updating profile.');
+      }
+    });
+  });
+</script>

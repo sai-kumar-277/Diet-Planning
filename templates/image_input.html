@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Recognition - NutriTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Upload Your Food Image</h2>
+        <form action="{{ url_for('image_process') }}" method="POST" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required><br><br>
+            <button type="submit">Analyze Image</button>
+        </form>
+
+        {% if predictions %}
+            <h3>Predicted Food Items</h3>
+            <form action="{{ url_for('edit_predictions') }}" method="POST">
+                <ul>
+                    {% for item, count in predictions.items() %}
+                        <li>
+                            <input type="text" name="items" value="{{ item }}">
+                            <input type="number" name="quantities" value="{{ count }}" min="1">
+                        </li>
+                    {% endfor %}
+                </ul>
+                <label for="new_item">Add New Item:</label>
+                <input type="text" name="new_item" placeholder="e.g. Broccoli">
+                <input type="number" name="new_quantity" min="1" placeholder="Qty"><br><br>
+                <button type="submit">Save & Continue</button>
+            </form>
+        {% endif %}
+
+        {% if saved_data %}
+            <!-- Popup notification -->
+            <div id="popup" style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+                background-color: #fff; border: 2px solid #28a745; padding: 20px; z-index: 9999;
+                box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3); width: 300px; text-align: center;">
+                <h4>✅ Food Stored</h4>
+                <ul style="text-align: left;">
+                    {% for item, qty, cal in saved_data %}
+                        <li><strong>{{ item }}</strong> - Quantity: {{ qty }} {% if cal != "Nutrition data unavailable" %}({{ cal }} kcal){% else %}(<em>{{ cal }}</em>){% endif %}</li>
+                    {% endfor %}
+                </ul>
+                <button onclick="document.getElementById('popup').style.display='none';">OK</button>
+            </div>
+
+            <!-- Saved food list section -->
+            <div class="saved-entries" style="margin-top: 40px;">
+                <h3>📦 Saved Entries</h3>
+                <ul>
+                    {% for item, qty, cal in saved_data %}
+                        <li>
+                            <strong>{{ item }}</strong> (x{{ qty }}) -
+                            {% if cal == "Nutrition data unavailable" %}
+                                <em>{{ cal }}</em>
+                            {% else %}
+                                {{ cal }} kcal
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

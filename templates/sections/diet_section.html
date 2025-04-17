@@ -1,0 +1,46 @@
+<div class="container">
+    <h2 class="mb-4">Choose Your Diet Plan</h2>
+    <div class="row g-3" id="diet-options">
+      {% for diet in ['Vegan', 'Mediterranean', 'High Protein', 'Low Fat', 'Keto', 'Paleo'] %}
+      <div class="col-md-4">
+        <div class="card diet-card text-center p-4" data-diet="{{ diet }}">
+          <h5 class="card-title">{{ diet }}</h5>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  
+  <style>
+    .diet-card {
+      cursor: pointer;
+      border: 2px solid #ddd;
+      transition: all 0.3s ease;
+      border-radius: 10px;
+    }
+  
+    .diet-card:hover {
+      background-color: #f0f0f0;
+      border-color: #007bff;
+    }
+  
+    .diet-card.selected {
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+  </style>
+  
+  <script>
+    $('#diet-options .diet-card').click(function () {
+      $('.diet-card').removeClass('selected');
+      $(this).addClass('selected');
+      const selectedDiet = $(this).data('diet');
+  
+      // Optional: Save to server
+      $.post('/save_diet_plan', { diet: selectedDiet }, function (response) {
+        alert(response.message);
+      });
+    });
+  </script>
+  

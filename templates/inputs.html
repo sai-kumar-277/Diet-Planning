@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Document</title>
+</head>
+<body>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- dashboard.html -->
+        <h2>Welcome, {{ name }}!</h2>
+
+        <!-- Manual Input Form -->
+        <h3>Enter Food Manually</h3>
+        <form method="POST" action="/manual-entry">
+        <input type="text" name="food_name" placeholder="e.g. Apple" required>
+        <input type="number" name="quantity" placeholder="Quantity (g/ml/pieces)" required>
+        <button type="submit">Submit</button>
+        </form>
+
+        <!-- Voice Input -->
+        <h3>Speak Your Meal</h3>
+        <button onclick="startRecording()">🎤Start Voice Input</button>
+        <p id="voiceResult"></p>
+
+        <!-- Image Upload -->
+        <h3>Upload Food Image</h3>
+        <form method="POST" action="/image-upload" enctype="multipart/form-data">
+        <input type="file" name="food_image" accept="image/*" required>
+        <button type="submit">Upload</button>
+        </form>
+
+        <!-- Include JS -->
+        <script src="{{ url_for('static', filename='speech.js') }}"></script>
+
+    </div>
+</body>
+</html>

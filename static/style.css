@@ -1,0 +1,83 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Only hide horizontal scroll if necessary */
+  overflow-y: auto; 
+  height: 100vh;
+  background-color: white;
+  font-family: Arial, sans-serif;
+  background-image: url("/static/background.avif");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  height: 100vh;
+  margin: 0;
+  position: relative;
+}
+
+
+.container {
+  position: relative;
+  z-index: 2; 
+  max-width: 400px;
+  margin: 50px auto;
+  background: rgba(255, 255, 255, 0.811);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(165, 172, 250, 0.758);
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.flash.success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.flash.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.flower {
+  border-radius: 50%;
+  position: absolute;
+  font-size: 30px;
+  top: 100vh; /* Make sure they're initially off-screen at bottom */
+  z-index: 1; /* Behind form */
+  animation: fly 5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes fly {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-120vh) translateX(40px) rotate(360deg);
+    opacity: 0;
+  }
+}

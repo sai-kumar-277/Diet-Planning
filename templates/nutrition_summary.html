@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>Nutrition Summary</h2>
+<table>
+    <tr>
+        <th>Time</th><th>Item</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th>
+    </tr>
+    {% for food in nutrition_data %}
+    <tr>
+        <td>{{ food.time_of_day }}</td>
+        <td>{{ food.name }}</td>
+        <td>{{ food.quantity }}</td>
+        <td>{{ food.calories }}</td>
+        <td>{{ food.protein }}</td>
+        <td>{{ food.carbs }}</td>
+        <td>{{ food.fat }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

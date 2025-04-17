@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Analytics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .meal-column {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .meal-header {
+      font-size: 20px;
+      font-weight: bold;
+      color: #495057;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+  <h2 class="text-center mb-4">🍽️ Today's Intake</h2>
+  <div class="row text-center">
+    {% for slot in ['morning', 'afternoon', 'evening'] %}
+    <div class="col-md-4">
+      <div class="meal-column">
+        <div class="meal-header">
+            {% if slot == 'unspecified' %}Unspecified{% else %}{{ slot.capitalize() }}{% endif %}
+          </div>          
+        {% if meals[slot] %}
+          <ul class="list-group">
+            {% for item in meals[slot] %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ item.quantity }} x {{ item.item }}
+                <span class="badge bg-primary rounded-pill">{{ item.calories|default(0)|float|round(1) }} kcal</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">No food logged.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<div class="container mt-4">
+    <h3 class="text-center mb-3">📊 Analytics Summary</h3>
+    <div class="row">
+      <div class="col-md-6 text-center">
+        <img src="data:image/png;base64,{{ bar_chart }}" alt="Calories Bar Chart" class="img-fluid">
+      </div>
+      <div class="col-md-6 text-center">
+        <img src="data:image/png;base64,{{ pie_chart }}" alt="Macros Pie Chart" class="img-fluid">
+      </div>
+    </div>
+  </div>  
+</body>
+</html>
