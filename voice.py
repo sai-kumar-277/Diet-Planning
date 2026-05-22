@@ -60,17 +60,25 @@ def correct_food_spelling(food):
     return food_corrections.get(corrected, corrected)
 
 def get_voice_input():
-    recognizer = sr.Recognizer()
-    mic = sr.Microphone()
-
-    with mic as source:
-        print("🎤 Say your food items (e.g. '2 eggs and 1 toast')...")
-        recognizer.adjust_for_ambient_noise(source, duration=1)
-        print("🔴 Listening now...")
-        audio = recognizer.listen(source, timeout=None, phrase_time_limit=10)
-        print("✅ Audio captured...")
+    """
+    Capture voice input from the microphone.
+    Returns None gracefully if no microphone is available (e.g., server environments).
+    """
+    try:
+        recognizer = sr.Recognizer()
+        mic = sr.Microphone()
+    except (OSError, AttributeError) as e:
+        print(f"⚠️ Microphone not available (server environment): {e}")
+        return None
 
     try:
+        with mic as source:
+            print("🎤 Say your food items (e.g. '2 eggs and 1 toast')...")
+            recognizer.adjust_for_ambient_noise(source, duration=1)
+            print("🔴 Listening now...")
+            audio = recognizer.listen(source, timeout=None, phrase_time_limit=10)
+            print("✅ Audio captured...")
+
         text = recognizer.recognize_google(audio)
         print("📝 You said:", text)
         return text
@@ -78,6 +86,8 @@ def get_voice_input():
         print("😕 Sorry, I couldn't understand.")
     except sr.RequestError as e:
         print(f"⚠️ Response from Google was empty or invalid: {e}")
+    except Exception as e:
+        print(f"⚠️ Voice input error: {e}")
 
     return None
 
