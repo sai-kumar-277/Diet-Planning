@@ -1,3 +1,13 @@
+---
+title: Calorie Intake Calculator
+emoji: 🥗
+colorFrom: purple
+colorTo: pink
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🥗 NutriTrack — AI-Powered Diet & Calorie Tracker
 
 > A full-stack AI-powered diet and calorie tracking web application built with **Flask**, **YOLOv8**, a **local LLM (Qwen 2.5)**, and a glassmorphism dark UI.
