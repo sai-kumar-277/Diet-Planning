@@ -1,67 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Image Recognition - NutriTrack</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h2>Upload Your Food Image</h2>
-        <form action="{{ url_for('image_process') }}" method="POST" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*" required><br><br>
-            <button type="submit">Analyze Image</button>
-        </form>
+{% extends "base.html" %}
 
-        {% if predictions %}
-            <h3>Predicted Food Items</h3>
-            <form action="{{ url_for('edit_predictions') }}" method="POST">
-                <ul>
-                    {% for item, count in predictions.items() %}
-                        <li>
-                            <input type="text" name="items" value="{{ item }}">
-                            <input type="number" name="quantities" value="{{ count }}" min="1">
-                        </li>
-                    {% endfor %}
-                </ul>
-                <label for="new_item">Add New Item:</label>
-                <input type="text" name="new_item" placeholder="e.g. Broccoli">
-                <input type="number" name="new_quantity" min="1" placeholder="Qty"><br><br>
-                <button type="submit">Save & Continue</button>
-            </form>
-        {% endif %}
+{% block title %}Image Recognition - NutriTrack{% endblock %}
 
-        {% if saved_data %}
-            <!-- Popup notification -->
-            <div id="popup" style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
-                background-color: #fff; border: 2px solid #28a745; padding: 20px; z-index: 9999;
-                box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3); width: 300px; text-align: center;">
-                <h4>✅ Food Stored</h4>
-                <ul style="text-align: left;">
-                    {% for item, qty, cal in saved_data %}
-                        <li><strong>{{ item }}</strong> - Quantity: {{ qty }} {% if cal != "Nutrition data unavailable" %}({{ cal }} kcal){% else %}(<em>{{ cal }}</em>){% endif %}</li>
-                    {% endfor %}
-                </ul>
-                <button onclick="document.getElementById('popup').style.display='none';">OK</button>
+{% block head %}
+<style>
+    .upload-area {
+        border: 2px dashed rgba(255,255,255,0.2);
+        border-radius: var(--border-radius-lg);
+        padding: 40px 20px;
+        text-align: center;
+        background: rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: var(--transition-fast);
+        margin-bottom: 20px;
+    }
+    .upload-area:hover {
+        border-color: var(--accent-primary);
+        background: rgba(139, 92, 246, 0.05);
+    }
+    .upload-icon {
+        font-size: 3rem;
+        color: var(--accent-primary);
+        margin-bottom: 15px;
+    }
+    input[type="file"] {
+        display: none;
+    }
+    .file-name {
+        margin-top: 10px;
+        font-weight: bold;
+        color: var(--text-primary);
+    }
+    
+    .prediction-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+    .prediction-row .form-control {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card fade-in-up" style="max-width: 600px; margin: 0 auto;">
+    <div class="text-center mb-4">
+        <h2 class="mb-1">Snap & Track</h2>
+        <p>Upload a photo of your food for instant AI analysis.</p>
+    </div>
+
+    {% if not predictions and not saved %}
+    <form action="{{ url_for('image_process') }}" method="POST" enctype="multipart/form-data">
+        <label for="image-upload" class="upload-area w-100">
+            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h3>Choose an image</h3>
+            <p>JPEG, PNG, AVIF up to 5MB</p>
+            <div id="file-name" class="file-name"></div>
+        </label>
+        <input type="file" name="image" id="image-upload" accept="image/*" required onchange="document.getElementById('file-name').innerText = this.files[0].name;">
+        
+        <button type="submit" class="btn btn-primary btn-block mt-3">
+            <i class="fas fa-magic"></i> Analyze Image
+        </button>
+    </form>
+    {% endif %}
+
+    {% if predictions %}
+    <div class="fade-in-up">
+        <h3 class="mb-3 text-accent"><i class="fas fa-robot"></i> AI Predictions</h3>
+        <form action="{{ url_for('edit_predictions') }}" method="POST">
+            <div class="mb-3">
+                {% for item, count in predictions.items() %}
+                    <div class="prediction-row">
+                        <input type="text" name="items" value="{{ item }}" class="form-control" style="flex: 2;">
+                        <input type="number" name="quantities" value="{{ count }}" min="1" class="form-control" style="flex: 1;">
+                    </div>
+                {% endfor %}
             </div>
+            
+            <div class="mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: var(--border-radius-sm);">
+                <label class="mb-2 d-block">Did we miss something? Add it here:</label>
+                <div class="prediction-row">
+                    <input type="text" name="new_item" placeholder="e.g. Apple" class="form-control" style="flex: 2;">
+                    <input type="number" name="new_quantity" min="1" placeholder="Qty" class="form-control" style="flex: 1;">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-save"></i> Save & Log Food
+            </button>
+        </form>
+    </div>
+    {% endif %}
 
-            <!-- Saved food list section -->
-            <div class="saved-entries" style="margin-top: 40px;">
-                <h3>📦 Saved Entries</h3>
-                <ul>
-                    {% for item, qty, cal in saved_data %}
-                        <li>
-                            <strong>{{ item }}</strong> (x{{ qty }}) -
+    {% if saved_data and saved %}
+    <div class="mt-4 fade-in-up text-center">
+        <div style="font-size: 3rem; color: var(--accent-success); margin-bottom: 10px;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="mb-3">Food Stored Successfully</h3>
+        
+        <div class="text-left" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--border-radius-md);">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for item, qty, cal in saved_data %}
+                    <li style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <strong>{{ item }}</strong> (x{{ qty }}) <br>
+                        <span class="text-secondary">
                             {% if cal == "Nutrition data unavailable" %}
                                 <em>{{ cal }}</em>
                             {% else %}
                                 {{ cal }} kcal
                             {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <a href="{{ url_for('image_input') }}" class="btn btn-outline mt-4">Scan Another</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-4">Go to Dashboard</a>
     </div>
-</body>
-</html>
+    {% endif %}
+</div>
+{% endblock %}

@@ -9,6 +9,7 @@ import numpy as np
 from collections import Counter
 import cv2
 import requests
+from nutrition_db import lookup_nutrition, lookup_nutrition_query
 from flask import session
 from datetime import datetime, date
 from voice import get_voice_input, extract_food_quantities
@@ -18,6 +19,7 @@ import re
 from datetime import datetime, timedelta
 from pprint import pprint
 from collections import defaultdict
+import llm_helper
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -25,105 +27,52 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
 model = YOLO('model/yolo_fruits_and_vegetables_v1.pt')
 
-# Nutritionix API credentials
-NUTRITIONIX_APP_ID = "298f3466"
-NUTRITIONIX_API_KEY = "477bc905b0a6872c02332efac64d9770"
+# ── Nutrition lookup (local database — no API key needed) ──────────────
 
 def get_nutrition_info(food_item):
-    print(f"[DEBUG] Querying Nutritionix for: '{food_item}'")
-    url = "https://trackapi.nutritionix.com/v2/natural/nutrients"
-    headers = {
-        "x-app-id": NUTRITIONIX_APP_ID,
-        "x-app-key": NUTRITIONIX_API_KEY,
-        "Content-Type": "application/json"
-    }
-    body = {
-        "query": food_item,
-        "timezone": "US/Eastern"
-    }
-    response = requests.post(url, json=body, headers=headers)
-    print(f"[DEBUG] Response status code: {response.status_code}")
-    if response.status_code == 200:
-        result = response.json()
-        print(f"[DEBUG] Response JSON: {result}")
-        if 'foods' in result and len(result['foods']) > 0:
-            return result['foods'][0]  # Return first food item as dict
-    return None
+    """Return nutrition dict for a single food item, or None."""
+    print(f"[DEBUG] Looking up nutrition for: '{food_item}'")
+    result = lookup_nutrition(food_item)
+    if result:
+        print(f"[DEBUG] Found: {result}")
+    else:
+        print(f"[DEBUG] No match found for '{food_item}'")
+    return result
 
 def get_info(query):
-    url = "https://trackapi.nutritionix.com/v2/natural/nutrients"
-    headers = {
-        "x-app-id": NUTRITIONIX_APP_ID,
-        "x-app-key": NUTRITIONIX_API_KEY,
-        "Content-Type": "application/json"
-    }
-    data = {
-        "query": query,
-        "timezone": "US/Eastern"
-    }
+    """Process a natural-language query and return {foods: [...]}."""
+    print(f"[DEBUG] Processing query: '{query}'")
+    result = lookup_nutrition_query(query)
+    if not result['foods']:
+        return {"error": "No matching foods found in database"}
+    return result
 
-    response = requests.post(url, headers=headers, json=data)
-    print("Nutritionix API Response Status:", response.status_code)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {"error": "API request failed"}
-
-# === 🧠 Rule-based + Nutrition-aware chatbot ===
-def chatbot_response(message):
-    msg = message.lower()
-    print("User Message:", msg)
-
-    # 🌟 1. Handle goal-based requests like "give me 500 kcal"
-    goal_match = re.search(r"(?:give me|need|suggest).(\d+)\s(kcal|calories|g protein|g carbs|g fat)", msg)
-    if goal_match:
-        amount = int(goal_match.group(1))
-        nutrient = goal_match.group(2)
-
-        suggestions = {
-            "kcal": "Try a peanut butter sandwich 🥪 (around 500 kcal)",
-            "calories": "How about a slice of pizza 🍕 or a smoothie 🥤?",
-            "g protein": "Grilled chicken breast 🍗 or Greek yogurt 🥣 are great protein sources!",
-            "g carbs": "Go for oatmeal 🥣 or bananas 🍌",
-            "g fat": "Avocados 🥑, nuts 🥜, or cheese 🧀 work well!"
-        }
-
-        return suggestions.get(nutrient, "I’d suggest some healthy whole foods! 🥗")
-
-    # 🌟 2. Check if the message seems to be about food
-    likely_food = any(word in msg for word in [
+# === 🧠 Local RAG Chatbot ===
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    message = data.get("message", "")
+    
+    # Retrieve relevant nutrition info locally if message implies food lookup
+    likely_food = any(word in message.lower() for word in [
         "calories", "nutrition", "protein", "carbs", "fat", "ate", "eaten", "have", "had", "food"
     ])
-    if likely_food or any(char.isdigit() for char in msg):  # Also try if message has quantities
-        nutrition_data = get_info(msg)
+    
+    nutrition_data = None
+    if likely_food or any(char.isdigit() for char in message):
+        nutrition_data = get_info(message)
         if "error" in nutrition_data:
-            return "Sorry, I couldn't get the nutrition info right now. 🥲"
-
-        if "foods" in nutrition_data and nutrition_data["foods"]:
-            reply = "Here's the nutrition breakdown:\n"
-            for food in nutrition_data["foods"]:
-                reply += (
-                    f"\n🍽️ {food['food_name'].title()}:\n"
-                    f"  - Calories: {food['nf_calories']} kcal\n"
-                    f"  - Protein: {food['nf_protein']} g\n"
-                    f"  - Fat: {food['nf_total_fat']} g\n"
-                    f"  - Carbs: {food['nf_total_carbohydrate']} g\n"
-                )
-            return reply
-        else:
-            return "I couldn't find any nutrition info for that. Try something more specific like '2 boiled eggs' 🥚"
-
-    # 🌟 3. Default rule-based responses
-    if "hello" in msg or "hi" in msg:
-        return "Hey there! 👋 How can I help you today?"
-    elif "suggest" in msg:
-        return "Try taking a short walk, listening to music, or learning something new today!"
-    elif "who are you" in msg:
-        return "I'm your friendly local chatbot. And I'm free 😎"
-    elif "bye" in msg:
-        return "Goodbye! Come back soon!"
-    else:
-        return "Hmm... I don't know that yet, but I'm learning! 😊"
+            nutrition_data = None
+            
+    user_id = session.get('user_id')
+    user_profile = None
+    health_profile = None
+    if user_id:
+        user_profile = Profile.query.filter_by(user_id=user_id).first()
+        health_profile = Health.query.filter_by(user_id=user_id).first()
+            
+    reply = llm_helper.generate_chatbot_reply(message, nutrition_data, user_profile, health_profile)
+    return jsonify({"reply": reply})
 
 @app.route('/')
 def home():
@@ -241,13 +190,16 @@ def analytics():
     if not user_id:
         return "User not logged in", 403
 
-    today = datetime.today().date()
-    start_of_day = datetime.combine(today, datetime.min.time())
-    end_of_day = start_of_day + timedelta(days=1)
+    ist_offset = timedelta(hours=5, minutes=30)
+    now_ist = datetime.utcnow() + ist_offset
+    today_ist = now_ist.date()
+    start_of_day_ist = datetime.combine(today_ist, datetime.min.time())
+    start_of_day_utc = start_of_day_ist - ist_offset
+    end_of_day_utc = start_of_day_utc + timedelta(days=1)
 
     entries = FoodEntry.query.filter(
-        FoodEntry.timestamp >= start_of_day,
-        FoodEntry.timestamp < end_of_day,
+        FoodEntry.timestamp >= start_of_day_utc,
+        FoodEntry.timestamp < end_of_day_utc,
         FoodEntry.user_id == user_id
     ).all()
 
@@ -262,7 +214,8 @@ def analytics():
         time_slot = entry.time_of_day
 
         if not time_slot or time_slot == "unspecified":
-            hour = entry.timestamp.hour
+            ist_time = entry.timestamp + timedelta(hours=5, minutes=30) if entry.timestamp else datetime.utcnow()
+            hour = ist_time.hour
             if hour < 12:
                 time_slot = "morning"
             elif hour < 17:
@@ -362,9 +315,17 @@ def nutrition_summary():
         return redirect(url_for('login'))
 
     user_id = session['user_id']
+    ist_offset = timedelta(hours=5, minutes=30)
+    now_ist = datetime.utcnow() + ist_offset
+    today_ist = now_ist.date()
+    start_of_day_ist = datetime.combine(today_ist, datetime.min.time())
+    start_of_day_utc = start_of_day_ist - ist_offset
+    end_of_day_utc = start_of_day_utc + timedelta(days=1)
+
     items = FoodEntry.query.filter(
-    FoodEntry.user_id == user_id,
-    db.func.date(FoodEntry.timestamp) == date.today()
+        FoodEntry.user_id == user_id,
+        FoodEntry.timestamp >= start_of_day_utc,
+        FoodEntry.timestamp < end_of_day_utc
     ).all()
 
     nutrition_data = []
@@ -492,10 +453,28 @@ def update_profile():
 
     return jsonify({"success": True, "updated_html": updated_html})
 
+@app.route('/update_diet_goals', methods=['POST'])
+def update_diet_goals():
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session['user_id']
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    if not profile:
+        profile = Profile(user_id=user_id)
+        db.session.add(profile)
+        
+    goals = request.form.get('goals')
+    profile.goals = goals
+    db.session.commit()
+    
+    return jsonify({"success": True})
+
 @app.route('/save_health', methods=['POST'])
 def save_health():
     condition = request.form.get('condition')
     schedule = request.form.get('schedule')
+    avoid_foods = request.form.get('avoid_foods', '')
     user_id = session.get('user_id')
 
     if not user_id:
@@ -506,8 +485,9 @@ def save_health():
     if health:
         health.condition = condition
         health.schedule = schedule
+        health.avoid_foods = avoid_foods
     else:
-        health = Health(user_id=user_id, condition=condition, schedule=schedule)
+        health = Health(user_id=user_id, condition=condition, schedule=schedule, avoid_foods=avoid_foods)
         db.session.add(health)
 
     try:
@@ -558,6 +538,13 @@ class FoodEntry(db.Model):
     time_of_day = db.Column(db.String(50))  # ✅ new column
     timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp())
 
+    @property
+    def timestamp_ist(self):
+        from datetime import timedelta
+        if self.timestamp:
+            return self.timestamp + timedelta(hours=5, minutes=30)
+        return None
+
 class Profile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
@@ -578,8 +565,152 @@ class Health(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
     condition = db.Column(db.String(100), nullable=False)  # e.g., "diabetes", "heart"
     schedule = db.Column(db.String(200), nullable=False)   # e.g., "8AM, 2PM, 9PM"
+    avoid_foods = db.Column(db.Text, default='')           # comma-separated list of foods to avoid
 
     user = db.relationship('User', backref=db.backref('health', uselist=False, cascade="all, delete-orphan"))
+
+# === 🍎 Suggested Foods & Diet Section ===
+def get_dynamic_suggestions(profile, health):
+    import random
+    from nutrition_db import NUTRITION_DATA
+    
+    # Base lists to avoid
+    meats = ["chicken", "mutton", "beef", "pork", "fish", "salmon", "tuna", "prawns", "shrimp", "bacon", "sausage", "turkey", "lamb", "nuggets"]
+    dairy = ["milk", "cheese", "paneer", "curd", "buttermilk", "lassi", "ghee", "cream", "ice cream", "butter", "yogurt"]
+    
+    user_text = ""
+    if profile and profile.goals:
+        user_text += profile.goals.lower() + " "
+    if health and health.condition:
+        user_text += health.condition.lower() + " "
+    if health and health.avoid_foods:
+        user_text += health.avoid_foods.lower() + " "
+        
+    is_vegan = "vegan" in user_text
+    is_veg = "vegetarian" in user_text or "veg" in user_text
+    high_protein = "muscle" in user_text or "gain" in user_text or "protein" in user_text
+    low_cal = "loss" in user_text or "lose" in user_text or "cut" in user_text
+    
+    avoid_list = []
+    if is_vegan:
+        avoid_list.extend(meats)
+        avoid_list.extend(dairy)
+        avoid_list.extend(["egg", "honey", "omelette"])
+    elif is_veg:
+        avoid_list.extend(meats)
+        
+    # Also split custom avoid foods
+    if health and health.avoid_foods:
+        custom_avoids = [x.strip().lower() for x in health.avoid_foods.split(',')]
+        avoid_list.extend(custom_avoids)
+        
+    safe_foods = []
+    for food, data in NUTRITION_DATA.items():
+        # Check if food contains any avoid word
+        if any(bad in food for bad in avoid_list):
+            continue
+            
+        # Score based on goals
+        score = 1
+        if high_protein and data["protein"] > 10:
+            score += 5
+        if low_cal and data["calories"] < 150:
+            score += 5
+            
+        safe_foods.append((food.title(), score))
+        
+    if not safe_foods:
+        return ["Apple", "Banana", "Oats", "Salad"]
+        
+    # Sort by score descending and pick from top ones
+    safe_foods.sort(key=lambda x: x[1], reverse=True)
+    top_candidates = [f[0] for f in safe_foods[:10]]
+    random.shuffle(top_candidates)
+    return top_candidates[:4]
+
+@app.route('/suggestions')
+def suggestions():
+    if 'user_id' not in session:
+        flash('Please log in to view dietary suggestions.', 'error')
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    health = Health.query.filter_by(user_id=user_id).first()
+    
+    suggested_foods = get_dynamic_suggestions(profile, health)
+    
+    return render_template('suggestions.html', user=user, profile=profile, health=health, suggested_foods=suggested_foods)
+
+@app.route('/can_i_eat_this', methods=['POST'])
+def can_i_eat_this():
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json()
+    food_item = data.get("food", "").strip()
+    
+    user_id = session['user_id']
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    health = Health.query.filter_by(user_id=user_id).first()
+    
+    nutrition_data = get_nutrition_info(food_item)
+    advice = llm_helper.generate_diet_advice(food_item, nutrition_data, profile, health)
+    
+    return jsonify({
+        "advice": advice,
+        "nutrition": nutrition_data
+    })
+
+@app.route('/api/analyze-image', methods=['POST'])
+def api_analyze_image():
+    if 'image' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    image = request.files['image']
+    filename = secure_filename(image.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    image.save(filepath)
+
+    results = model.predict(filepath, save=False, conf=0.4)
+    names = results[0].names
+    boxes = results[0].boxes.cls.tolist()
+
+    counted_items = Counter([names[int(cls_id)] for cls_id in boxes])
+    
+    # Format as "2 Apple, 1 Banana"
+    items_list = [f"{count} {item}" for item, count in counted_items.items()]
+    predicted_text = ", ".join(items_list) if items_list else "Nothing detected"
+
+    return jsonify({"prediction": predicted_text})
+
+
+@app.route('/api/voice-input', methods=['GET'])
+def api_voice_input():
+    spoken_text = get_voice_input()
+    if spoken_text:
+        return jsonify({"text": spoken_text})
+    else:
+        return jsonify({"error": "Could not understand audio"}), 400
+
+@app.route('/api/get_goals', methods=['GET'])
+def api_get_goals():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"goals": ""})
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    health = Health.query.filter_by(user_id=user_id).first()
+    
+    goals = []
+    if profile and profile.goals:
+        goals.append(profile.goals.strip())
+    if health and health.condition:
+        goals.append("Health: " + health.condition.strip())
+    if health and health.avoid_foods:
+        goals.append("Avoid: " + health.avoid_foods.strip())
+        
+    return jsonify({"goals": " | ".join(goals) if goals else "No diet goals set"})
 
 # Create DB
 with app.app_context():

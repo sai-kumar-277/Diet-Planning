@@ -1,31 +1,97 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>Document</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Voice Input - NutriTrack{% endblock %}
+
+{% block head %}
+<style>
+    .mic-button-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 40px 0;
+    }
+    .mic-button {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+        transition: transform 0.2s ease;
+        position: relative;
+    }
+    .mic-button:hover {
+        transform: scale(1.05);
+    }
+    .mic-button::before {
+        content: '';
+        position: absolute;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: inherit;
+        z-index: -1;
+        animation: pulse 2s infinite ease-in-out;
+        opacity: 0.6;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.6; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+    .food-item-badge {
+        background: rgba(255,255,255,0.1);
+        padding: 12px 20px;
+        border-radius: var(--border-radius-pill);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .qty-badge {
+        background: var(--accent-primary);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card fade-in-up" style="max-width: 600px; margin: 0 auto;">
+    <div class="text-center">
+        <h2 class="mb-1">Voice Recognition</h2>
+        <p>Just tell us what you ate naturally.</p>
+    </div>
+
     <form action="{{ url_for('voice_process') }}" method="get">
-        <button type="submit">🎙 Start Voice Input</button>
+        <div class="mic-button-wrapper">
+            <button type="submit" class="mic-button" title="Click to speak">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+        <p class="text-center text-secondary">Click the microphone and start speaking.<br>e.g. "I had two scrambled eggs and a slice of toast."</p>
     </form>
     
     {% if saved_data %}
-    <div class="card mt-4">
-        <div class="card-header bg-success text-white">
-          <h4>📝 Food Entries Added via Voice</h4>
+    <div class="mt-4 fade-in-up delay-1">
+        <h3 class="mb-3 text-accent"><i class="fas fa-check-circle"></i> Successfully Logged</h3>
+        <div class="saved-entries">
+            {% for item, quantity in saved_data %}
+                <div class="food-item-badge">
+                    <span><strong>{{ item|capitalize }}</strong></span>
+                    <span class="qty-badge">x{{ quantity }}</span>
+                </div>
+            {% endfor %}
         </div>
-        <ul class="list-group list-group-flush">
-          {% for item, quantity in saved_data %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <strong>{{ item|capitalize }}</strong>
-              <span class="badge bg-primary rounded-pill">{{ quantity }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
+    </div>
     {% endif %}
-
-</body>
-</html>
+</div>
+{% endblock %}

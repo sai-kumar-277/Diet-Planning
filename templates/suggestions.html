@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Diet Suggestions - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="fade-in-up">
+    <div class="text-center mb-4">
+        <h1 class="text-gradient">Personalized Diet Suggestions</h1>
+        <p>AI-powered advice tailored to your health profile and goals.</p>
+    </div>
+
+    <!-- Suggested Foods Dashboard -->
+    <div class="glass-panel p-4 mb-4">
+        <h2 class="h4 mb-3"><i class="fas fa-star text-warning"></i> Recommended for You</h2>
+        <div class="row">
+            {% for food in suggested_foods %}
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="glass-card text-center p-3" style="min-height: auto;">
+                    <h5 class="mb-0 text-primary">{{ food }}</h5>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <small class="text-muted">Based on your Profile Goals: {{ profile.goals if profile else 'None set' }} and Health Conditions: {{ health.condition if health else 'None set' }}</small>
+    </div>
+
+    <!-- Can I eat this? -->
+    <div class="glass-panel p-4">
+        <h2 class="h4 mb-3"><i class="fas fa-question-circle text-info"></i> Can I eat this?</h2>
+        <p class="text-muted">Enter a food item to ask the AI if it fits your diet.</p>
+        
+        <div class="input-group mb-3">
+            <input type="text" id="foodInput" class="form-control" placeholder="e.g. Chocolate Cake, 2 boiled eggs...">
+            <button class="btn btn-primary" onclick="askDietitian()">Ask AI</button>
+        </div>
+        
+        <!-- Interactive Elements for Voice/Image (Simplified for UI representation) -->
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline" onclick="handleVoice()"><i class="fas fa-microphone"></i> Voice Input</button>
+            <button class="btn btn-outline" onclick="document.getElementById('imageUpload').click()"><i class="fas fa-camera"></i> Upload Image</button>
+            <input type="file" id="imageUpload" style="display:none;" onchange="handleImage(this)" accept="image/*">
+        </div>
+
+        <!-- Result Area -->
+        <div id="loadingArea" style="display:none;" class="text-center p-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Thinking...</span>
+            </div>
+            <p class="mt-2 text-muted">AI is analyzing your profile...</p>
+        </div>
+
+        <div id="resultArea" style="display:none;" class="glass-card p-3 mt-3 border-left-primary">
+            <h5 class="text-success"><i class="fas fa-robot"></i> AI Dietitian says:</h5>
+            <p id="aiAdvice" class="lead" style="font-weight: 500;"></p>
+            <hr>
+            <small id="nutritionInfo" class="text-muted"></small>
+        </div>
+    </div>
+</div>
+
+<script>
+function askDietitian(foodQuery = null) {
+    const foodItem = foodQuery || document.getElementById("foodInput").value;
+    if (!foodItem) return;
+
+    document.getElementById("loadingArea").style.display = "block";
+    document.getElementById("resultArea").style.display = "none";
+
+    fetch("/can_i_eat_this", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ food: foodItem })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("loadingArea").style.display = "none";
+        document.getElementById("resultArea").style.display = "block";
+        document.getElementById("aiAdvice").innerText = data.advice;
+        
+        if (data.nutrition) {
+            document.getElementById("nutritionInfo").innerText = 
+                `Nutrition: ${data.nutrition.nf_calories} kcal | ${data.nutrition.nf_protein}g Protein | ${data.nutrition.nf_total_carbohydrate}g Carbs | ${data.nutrition.nf_total_fat}g Fat`;
+        } else {
+            document.getElementById("nutritionInfo").innerText = "Exact nutrition data not found in local database.";
+        }
+    })
+    .catch(err => {
+        document.getElementById("loadingArea").style.display = "none";
+        alert("Error connecting to AI.");
+    });
+}
+
+function handleVoice() {
+    document.getElementById("loadingArea").style.display = "block";
+    document.getElementById("resultArea").style.display = "none";
+    
+    fetch('/api/voice-input')
+    .then(res => res.json())
+    .then(data => {
+        if(data.text) {
+            document.getElementById("foodInput").value = data.text;
+            askDietitian(data.text);
+        } else {
+            alert("Could not understand voice. Please try again.");
+            document.getElementById("loadingArea").style.display = "none";
+        }
+    })
+    .catch(err => {
+        alert("Error with voice input. Check if microphone is allowed.");
+        document.getElementById("loadingArea").style.display = "none";
+    });
+}
+
+function handleImage(input) {
+    if (input.files && input.files[0]) {
+        let formData = new FormData();
+        formData.append("image", input.files[0]);
+        
+        document.getElementById("loadingArea").style.display = "block";
+        document.getElementById("resultArea").style.display = "none";
+        
+        fetch('/api/analyze-image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("loadingArea").style.display = "none";
+            const predicted = prompt("Image analyzed! We think this is: " + data.prediction + ". If correct, click OK to ask the AI, or type the correct food:", data.prediction !== "Nothing detected" ? data.prediction : "");
+            if (predicted) {
+                document.getElementById("foodInput").value = predicted;
+                askDietitian(predicted);
+            }
+        })
+        .catch(err => {
+            alert("Error analyzing image.");
+            document.getElementById("loadingArea").style.display = "none";
+        });
+    }
+}
+</script>
+{% endblock %}

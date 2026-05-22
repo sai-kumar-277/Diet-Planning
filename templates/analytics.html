@@ -1,62 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Smart Analytics</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .meal-column {
-      background: #f8f9fa;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .meal-header {
-      font-size: 20px;
-      font-weight: bold;
-      color: #495057;
-      margin-bottom: 10px;
-    }
-  </style>
-</head>
-<body>
-<div class="container mt-4">
-  <h2 class="text-center mb-4">🍽️ Today's Intake</h2>
-  <div class="row text-center">
-    {% for slot in ['morning', 'afternoon', 'evening'] %}
-    <div class="col-md-4">
-      <div class="meal-column">
-        <div class="meal-header">
-            {% if slot == 'unspecified' %}Unspecified{% else %}{{ slot.capitalize() }}{% endif %}
-          </div>          
-        {% if meals[slot] %}
-          <ul class="list-group">
-            {% for item in meals[slot] %}
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ item.quantity }} x {{ item.item }}
-                <span class="badge bg-primary rounded-pill">{{ item.calories|default(0)|float|round(1) }} kcal</span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-muted">No food logged.</p>
-        {% endif %}
-      </div>
+{% extends "base.html" %}
+
+{% block title %}Smart Analytics - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="fade-in-up">
+    <div class="text-center mb-4">
+        <h2 class="mb-1"><i class="fas fa-chart-pie text-accent"></i> Today's Intake</h2>
+        <p>A breakdown of your nutrition for today.</p>
     </div>
-    {% endfor %}
-  </div>
+
+    <!-- Macros Summary -->
+    <div class="glass-card mb-4">
+        <h3 class="mb-3">Daily Macros</h3>
+        <div class="row" style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="stat-card flex-fill">
+                <div class="stat-icon protein"><i class="fas fa-drumstick-bite"></i></div>
+                <div class="stat-details">
+                    <h4>Protein</h4>
+                    <p class="value">{{ total_macros.protein|default(0)|float|round(1) }}g</p>
+                </div>
+            </div>
+            <div class="stat-card flex-fill">
+                <div class="stat-icon carbs"><i class="fas fa-bread-slice"></i></div>
+                <div class="stat-details">
+                    <h4>Carbs</h4>
+                    <p class="value">{{ total_macros.carbs|default(0)|float|round(1) }}g</p>
+                </div>
+            </div>
+            <div class="stat-card flex-fill">
+                <div class="stat-icon fat"><i class="fas fa-cheese"></i></div>
+                <div class="stat-details">
+                    <h4>Fat</h4>
+                    <p class="value">{{ total_macros.fat|default(0)|float|round(1) }}g</p>
+                </div>
+            </div>
+            <div class="stat-card flex-fill">
+                <div class="stat-icon calories"><i class="fas fa-fire"></i></div>
+                <div class="stat-details">
+                    <h4>Total Calories</h4>
+                    <p class="value">{{ (calories_per_meal.morning|default(0) + calories_per_meal.afternoon|default(0) + calories_per_meal.evening|default(0))|float|round(1) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meals Breakdown -->
+    <div class="dashboard-grid mt-4">
+        {% for slot in ['morning', 'afternoon', 'evening'] %}
+        <div class="glass-card delay-{{ loop.index }}">
+            <h3 class="mb-3 d-flex justify-content-between align-items-center">
+                <span>
+                    {% if slot == 'morning' %}<i class="fas fa-sun text-warning"></i>{% endif %}
+                    {% if slot == 'afternoon' %}<i class="fas fa-cloud-sun text-primary"></i>{% endif %}
+                    {% if slot == 'evening' %}<i class="fas fa-moon text-accent"></i>{% endif %}
+                    {{ slot.capitalize() }}
+                </span>
+                <span class="badge" style="font-size: 0.9rem; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 12px;">
+                    {{ calories_per_meal[slot]|default(0)|float|round(1) }} kcal
+                </span>
+            </h3>
+            
+            {% if meals[slot] %}
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for item in meals[slot] %}
+                <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span><strong>{{ item.quantity }}x</strong> {{ item.item|capitalize }}</span>
+                    <span class="text-secondary">{{ item.calories|default(0)|float|round(1) }} kcal</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-secondary mt-2 mb-0">No food logged for this time.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
-<div class="container mt-4">
-    <h3 class="text-center mb-3">📊 Analytics Summary</h3>
-    <div class="row">
-      <div class="col-md-6 text-center">
-        <img src="data:image/png;base64,{{ bar_chart }}" alt="Calories Bar Chart" class="img-fluid">
-      </div>
-      <div class="col-md-6 text-center">
-        <img src="data:image/png;base64,{{ pie_chart }}" alt="Macros Pie Chart" class="img-fluid">
-      </div>
-    </div>
-  </div>  
-</body>
-</html>
+{% endblock %}

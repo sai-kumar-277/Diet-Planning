@@ -1,0 +1,112 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NutriTrack{% endblock %}</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <!-- Custom Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Background elements -->
+    <div class="mesh-bg"></div>
+    <div class="glass-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast toast-{{ category }}">
+                        <div class="toast-content">{{ message }}</div>
+                        <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {% if request.endpoint not in ['login', 'signup', 'home'] %}
+    <!-- Modern Sidebar / Navbar for App Pages -->
+    <nav class="glass-nav">
+        <div class="nav-brand">
+            <i class="fas fa-leaf text-accent"></i> NutriTrack
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i> <span class="d-none d-md-inline">Dashboard</span>
+            </a>
+            <a href="{{ url_for('my_log') }}" class="{% if request.endpoint == 'my_log' %}active{% endif %}">
+                <i class="fas fa-book"></i> <span class="d-none d-md-inline">Food Log</span>
+            </a>
+            <a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i> <span class="d-none d-md-inline">Analytics</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}">
+                <i class="fas fa-user"></i> <span class="d-none d-md-inline">Profile</span>
+            </a>
+        </div>
+        <div class="nav-actions">
+            <a href="{{ url_for('logout') }}" class="btn-icon text-danger" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% if request.endpoint not in ['login', 'signup', 'home'] %}
+    <!-- Diet Goals Banner -->
+    <div id="diet-goals-banner" style="display:none; text-align:center; padding: 10px; background: rgba(139, 92, 246, 0.2); border-bottom: 1px solid var(--glass-border); color: var(--text-primary); font-size: 0.95rem; margin-top: 70px;">
+        <i class="fas fa-bullseye" style="color: var(--accent-primary); margin-right: 8px;"></i>
+        <strong>Your Diet Goals:</strong> <span id="diet-goals-text"></span>
+    </div>
+    {% endif %}
+
+    <main class="{% if request.endpoint not in ['login', 'signup', 'home'] %}app-main{% else %}auth-main{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Chatbot (only on authenticated pages) -->
+    {% if request.endpoint not in ['login', 'signup', 'home'] %}
+    <div id="chatbot-widget" class="chatbot-widget">
+        <button id="toggle-chat" class="chatbot-fab" title="Chat with AI" onclick="toggleChat()">
+            <i class="fas fa-sparkles"></i>
+        </button>
+        
+        <div id="chatbox-container" class="glass-panel chatbox-container" style="display: none;">
+            <div class="chatbox-header">
+                <div class="chat-title">
+                    <div class="ai-avatar"><i class="fas fa-robot text-white"></i></div>
+                    <div>
+                        <strong style="color:white; display:block; line-height:1;">NutriAI</strong>
+                        <span class="status-indicator">Online</span>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="toggleChat()"><i class="fas fa-times text-white"></i></button>
+            </div>
+            <div id="chatbox-body" class="chatbox-body"></div>
+            <div class="chatbox-input">
+                <input type="text" id="userInput" placeholder="Ask about nutrition..." onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off" />
+                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

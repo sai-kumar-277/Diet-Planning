@@ -1,43 +1,78 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Free Chatbot</title>
-    <style>
-        body { font-family: Arial; background: #f2f2f2; padding: 30px; }
-        #chatbox { width: 100%; max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        .message { margin: 10px 0; }
-        .user { color: blue; }
-        .bot { color: green; }
-    </style>
-</head>
-<body>
-    <div id="chatbox">
-        <h2>💬 Chat with me!</h2>
-        <div id="messages"></div>
-        <input type="text" id="userInput" placeholder="Type something..." />
-        <button onclick="sendMessage()">Send</button>
+{% extends "base.html" %}
+
+{% block title %}AI Dietitian - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="fade-in-up">
+    <div class="text-center mb-4">
+        <h1 class="text-gradient">Chat with your AI Dietitian</h1>
+        <p>Ask anything about nutrition, calories, or diet advice.</p>
     </div>
 
-    <script>
-        function sendMessage() {
-            const input = document.getElementById("userInput");
-            const message = input.value;
-            if (!message) return;
+    <div class="glass-panel mx-auto p-4" style="max-width: 600px;">
+        <div id="messages" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding: 10px;">
+            <!-- Messages go here -->
+            <div class="bot-message" style="align-self: flex-start; background: rgba(16, 185, 129, 0.1); padding: 10px 15px; border-radius: 15px; max-width: 80%;">
+                <strong><i class="fas fa-robot text-success"></i> AI:</strong> Hello! I'm your personal AI Dietitian. How can I help you today?
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="userInput" class="form-control" placeholder="Ask about calories, proteins, or diet tips..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button class="btn btn-primary" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
 
-            const chat = document.getElementById("messages");
-            chat.innerHTML += `<div class="message user"><b>You:</b> ${message}</div>`;
+<script>
+    function sendMessage() {
+        const input = document.getElementById("userInput");
+        const message = input.value.trim();
+        if (!message) return;
 
-            fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
-            })
-            .then(res => res.json())
-            .then(data => {
-                chat.innerHTML += `<div class="message bot"><b>Bot:</b> ${data.reply}</div>`;
-                input.value = "";
-            });
-        }
-    </script>
-</body>
-</html>
+        const chat = document.getElementById("messages");
+        
+        // Append user message
+        chat.innerHTML += `
+            <div class="user-message" style="align-self: flex-end; background: rgba(59, 130, 246, 0.1); padding: 10px 15px; border-radius: 15px; max-width: 80%;">
+                <strong>You:</strong> ${message}
+            </div>
+        `;
+        input.value = "";
+        chat.scrollTop = chat.scrollHeight;
+
+        // Show typing indicator
+        const typingId = "typing-" + Date.now();
+        chat.innerHTML += `
+            <div id="${typingId}" class="bot-message" style="align-self: flex-start; background: rgba(16, 185, 129, 0.1); padding: 10px 15px; border-radius: 15px; max-width: 80%;">
+                <em>AI is thinking...</em>
+            </div>
+        `;
+        chat.scrollTop = chat.scrollHeight;
+
+        fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById(typingId).remove();
+            chat.innerHTML += `
+                <div class="bot-message" style="align-self: flex-start; background: rgba(16, 185, 129, 0.1); padding: 10px 15px; border-radius: 15px; max-width: 80%;">
+                    <strong><i class="fas fa-robot text-success"></i> AI:</strong> ${data.reply}
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        })
+        .catch(err => {
+            document.getElementById(typingId).remove();
+            chat.innerHTML += `
+                <div class="bot-message text-danger" style="align-self: flex-start; padding: 10px 15px;">
+                    <strong>Error:</strong> Could not connect to AI.
+                </div>
+            `;
+        });
+    }
+</script>
+{% endblock %}

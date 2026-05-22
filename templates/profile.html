@@ -1,71 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>User Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-  <style>
-    body { margin: 0; font-family: Arial; }
-    .sidebar {
-      width: 100px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      background-color: #343a40;
-      padding-top: 20px;
-      border-right: 1px solid #ddd;
-    }
-    .sidebar a {
-      display: block;
-      padding: 15px 20px;
-      color: #fff;
-      text-decoration: none;
-      font-size: 24px;
-      text-align: center;
-    }
-    .sidebar a:hover {
-      background-color: #495057;
-    }
-    .main-content {
-      margin-left: 120px;
-      padding: 20px;
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="sidebar">
-  <a href="#" data-section="profile" title="Profile"><i class="fas fa-user"></i></a>
-  <a href="#" data-section="health" title="Health"><i class="fas fa-heartbeat"></i></a>
-  <a href="#" data-section="settings" title="Settings"><i class="fas fa-cog"></i></a>
-  <a href="#" data-section="diet" title="Diet"><i class="fas fa-utensils"></i></a>
-  <a href="#" data-section="connect" title="Connect"><i class="fas fa-comments"></i></a>
+{% block title %}Profile & Settings - NutriTrack{% endblock %}
+
+{% block head %}
+<style>
+    .profile-nav {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding-bottom: 15px;
+        overflow-x: auto;
+    }
+    .profile-nav a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: var(--border-radius-pill);
+        transition: var(--transition-fast);
+        white-space: nowrap;
+        font-weight: 500;
+    }
+    .profile-nav a:hover, .profile-nav a.active {
+        background: rgba(255,255,255,0.1);
+        color: var(--text-primary);
+    }
+    .profile-nav a.active {
+        background: var(--accent-primary);
+        color: white;
+    }
+    .profile-content {
+        min-height: 400px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card fade-in-up" style="max-width: 800px; margin: 0 auto;">
+    <div class="text-center mb-4">
+        <h2 class="mb-1"><i class="fas fa-user-circle text-primary"></i> User Dashboard</h2>
+        <p>Manage your profile, health details, and account settings.</p>
+    </div>
+
+    <div class="profile-nav" id="profile-tabs">
+        <a href="#" data-section="profile" class="active"><i class="fas fa-user"></i> My Profile</a>
+        <a href="#" data-section="health"><i class="fas fa-heartbeat"></i> Health</a>
+        <a href="#" data-section="diet"><i class="fas fa-utensils"></i> Diet Goals</a>
+        <a href="#" data-section="settings"><i class="fas fa-cog"></i> Settings</a>
+        <a href="#" data-section="connect"><i class="fas fa-comments"></i> Connect</a>
+    </div>
+
+    <div class="profile-content fade-in-up delay-1" id="dynamic-content">
+        <!-- Content loaded dynamically -->
+        <div class="text-center p-5"><i class="fas fa-spinner fa-spin text-accent" style="font-size: 2rem;"></i> <br><br>Loading...</div>
+    </div>
 </div>
+{% endblock %}
 
-<div class="main-content" id="dynamic-content">
-  <!-- Dynamic content will be loaded here -->
-</div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% block scripts %}
 <script>
   $(document).ready(function(){
     // Load default section
     loadSection('profile');
 
-    $('.sidebar a').click(function(e){
+    $('#profile-tabs a').click(function(e){
       e.preventDefault();
+      $('#profile-tabs a').removeClass('active');
+      $(this).addClass('active');
+      
       const section = $(this).data('section');
+      $('#dynamic-content').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin text-accent" style="font-size: 2rem;"></i><br><br>Loading...</div>');
       loadSection(section);
     });
 
     function loadSection(section) {
-      $.get('/load_section/' + section, function(data){
-        $('#dynamic-content').html(data);
+      $.ajax({
+        url: '/load_section/' + section,
+        cache: false,
+        success: function(data) {
+          $('#dynamic-content').html(data);
+        },
+        error: function() {
+          $('#dynamic-content').html('<div class="text-center p-5 text-danger"><i class="fas fa-exclamation-circle mb-2" style="font-size: 2rem;"></i><br>Failed to load section.</div>');
+        }
       });
     }
   });
 </script>
-</body>
-</html>
+{% endblock %}

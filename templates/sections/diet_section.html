@@ -1,46 +1,158 @@
-<div class="container">
-    <h2 class="mb-4">Choose Your Diet Plan</h2>
-    <div class="row g-3" id="diet-options">
-      {% for diet in ['Vegan', 'Mediterranean', 'High Protein', 'Low Fat', 'Keto', 'Paleo'] %}
-      <div class="col-md-4">
-        <div class="card diet-card text-center p-4" data-diet="{{ diet }}">
-          <h5 class="card-title">{{ diet }}</h5>
-        </div>
+<div class="fade-in-up">
+    <h3 class="mb-4">Choose Your Diet Plans</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        <i class="fas fa-info-circle"></i> Select one or more diet goals that match your lifestyle
+    </p>
+    <div class="dashboard-grid" id="diet-options" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      {% for diet in ['Vegan', 'Mediterranean', 'High Protein', 'Low Fat', 'Keto', 'Paleo', 'Low Carb', 'Balanced'] %}
+      <div class="glass-card diet-card text-center" data-diet="{{ diet }}">
+        <div class="diet-check" style="
+            position: absolute; top: 10px; right: 10px; width: 24px; height: 24px;
+            border: 2px solid rgba(255,255,255,0.2); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--transition-fast); font-size: 0.8rem;
+        "></div>
+        <h4 class="m-0">{{ diet }}</h4>
       </div>
       {% endfor %}
     </div>
-  </div>
-  
-  <style>
-    .diet-card {
-      cursor: pointer;
-      border: 2px solid #ddd;
-      transition: all 0.3s ease;
-      border-radius: 10px;
+
+    <div id="selectedDietsDisplay" class="mt-3" style="min-height: 30px;"></div>
+
+    <button id="saveDietsBtn" class="btn btn-primary mt-3" style="display: none;">
+        <i class="fas fa-save"></i> Save Diet Goals
+    </button>
+</div>
+
+<style>
+.diet-card {
+    cursor: pointer;
+    transition: var(--transition-bounce);
+    border: 2px solid transparent;
+    position: relative;
+    user-select: none;
+}
+.diet-card:hover {
+    border-color: var(--accent-primary);
+    background: rgba(139, 92, 246, 0.1);
+    transform: translateY(-5px);
+}
+.diet-card.selected {
+    border-color: var(--accent-primary);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.15));
+}
+.diet-card.selected .diet-check {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+.diet-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-primary);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 4px 12px;
+    border-radius: var(--border-radius-pill);
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: fadeIn 0.2s ease;
+}
+</style>
+
+<script>
+(function() {
+    let existingGoals = "{{ profile.goals if profile and profile.goals else '' }}";
+    let selectedDiets = [];
+    if (existingGoals) {
+        selectedDiets = existingGoals.split(',').map(s => s.trim()).filter(s => s.length > 0);
     }
-  
-    .diet-card:hover {
-      background-color: #f0f0f0;
-      border-color: #007bff;
-    }
-  
-    .diet-card.selected {
-      background-color: #007bff;
-      color: white;
-      border-color: #007bff;
-    }
-  </style>
-  
-  <script>
-    $('#diet-options .diet-card').click(function () {
-      $('.diet-card').removeClass('selected');
-      $(this).addClass('selected');
-      const selectedDiet = $(this).data('diet');
-  
-      // Optional: Save to server
-      $.post('/save_diet_plan', { diet: selectedDiet }, function (response) {
-        alert(response.message);
-      });
+
+    // Pre-select cards
+    $('#diet-options .diet-card').each(function() {
+        const diet = $(this).data('diet');
+        // Handle basic string matching in case the text isn't a perfect comma separated list
+        if (existingGoals.includes(diet)) {
+            if (!selectedDiets.includes(diet)) {
+                selectedDiets.push(diet);
+            }
+            $(this).addClass('selected');
+            $(this).find('.diet-check').html('<i class="fas fa-check" style="color: white;"></i>');
+        }
     });
-  </script>
-  
+    
+    updateDisplay();
+
+    $('#diet-options .diet-card').off('click').on('click', function () {
+        const diet = $(this).data('diet');
+
+        if ($(this).hasClass('selected')) {
+            // Deselect
+            $(this).removeClass('selected');
+            $(this).find('.diet-check').html('');
+            selectedDiets = selectedDiets.filter(d => d !== diet);
+        } else {
+            // Select
+            $(this).addClass('selected');
+            $(this).find('.diet-check').html('<i class="fas fa-check" style="color: white;"></i>');
+            if (!selectedDiets.includes(diet)) selectedDiets.push(diet);
+        }
+
+        updateDisplay();
+    });
+
+    function updateDisplay() {
+        const display = $('#selectedDietsDisplay');
+        if (selectedDiets.length === 0) {
+            display.html('');
+            $('#saveDietsBtn').show(); // Always show so they can clear goals
+            return;
+        }
+
+        let html = '<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">';
+        html += '<span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 4px;">Selected:</span>';
+        selectedDiets.forEach(d => {
+            html += `<span class="diet-badge"><i class="fas fa-check-circle"></i> ${d}</span>`;
+        });
+        html += '</div>';
+        display.html(html);
+        $('#saveDietsBtn').show();
+    }
+
+    // Save button
+    $('#saveDietsBtn').off('click').on('click', function () {
+        const goalsStr = selectedDiets.join(', ');
+        $.ajax({
+            type: 'POST',
+            url: '/update_diet_goals',
+            data: { goals: goalsStr },
+            success: function(response) {
+                // Update local storage so the banner updates immediately
+                localStorage.setItem('diet_goals', goalsStr);
+                const textSpan = document.getElementById("diet-goals-text");
+                const banner = document.getElementById("diet-goals-banner");
+                if (textSpan && banner) {
+                    if (goalsStr) {
+                        textSpan.textContent = goalsStr;
+                        banner.style.display = "block";
+                    } else {
+                        banner.style.display = "none";
+                    }
+                }
+                
+                const toastContainer = document.getElementById('toast-container');
+                if (toastContainer) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast toast-success';
+                    toast.innerHTML = `<div class="toast-content"><i class="fas fa-check-circle"></i> Diet goals saved!</div><button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+                    toastContainer.appendChild(toast);
+                    setTimeout(() => toast.remove(), 4000);
+                }
+            },
+            error: function() {
+                alert("Failed to save diet goals");
+            }
+        });
+    });
+})();
+</script>

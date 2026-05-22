@@ -48,7 +48,7 @@ food_corrections = {
     "chickn": "chicken", "chikn": "chicken",
     "chicken biriyani": "chicken biryani", "chiken biryani": "chicken biryani",
     "fried": "fried rice", "friedrice": "fried rice",
-    "fried ricee": "fried rice", "rice": "fried rice",  # optional, can remove if needed
+    "fried ricee": "fried rice",
 }
 
 

@@ -1,28 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h2>Nutrition Summary</h2>
-<table>
-    <tr>
-        <th>Time</th><th>Item</th><th>Qty</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th>
-    </tr>
-    {% for food in nutrition_data %}
-    <tr>
-        <td>{{ food.time_of_day }}</td>
-        <td>{{ food.name }}</td>
-        <td>{{ food.quantity }}</td>
-        <td>{{ food.calories }}</td>
-        <td>{{ food.protein }}</td>
-        <td>{{ food.carbs }}</td>
-        <td>{{ food.fat }}</td>
-    </tr>
-    {% endfor %}
-</table>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Nutrition Summary - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="glass-card fade-in-up">
+    <div class="text-center mb-4">
+        <h2 class="mb-1"><i class="fas fa-clipboard-list text-success"></i> Nutrition Summary</h2>
+        <p>Your logged items and their nutritional breakdown.</p>
+    </div>
+
+    {% if nutrition_data %}
+    <div class="table-responsive mt-4">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Calories</th>
+                    <th>Protein</th>
+                    <th>Carbs</th>
+                    <th>Fat</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for food in nutrition_data %}
+                <tr>
+                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">{{ food.time_of_day|capitalize }}</span></td>
+                    <td><strong>{{ food.name|capitalize }}</strong></td>
+                    <td>{{ food.quantity }}</td>
+                    <td class="text-accent">{{ food.calories|round(1) }}</td>
+                    <td>{{ food.protein|round(1) }}g</td>
+                    <td>{{ food.carbs|round(1) }}g</td>
+                    <td>{{ food.fat|round(1) }}g</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center p-5">
+        <i class="fas fa-apple-alt text-secondary" style="font-size: 3rem; margin-bottom: 15px;"></i>
+        <h3>No nutrition data today</h3>
+        <p class="text-secondary">Log some food to see your summary.</p>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-3">Go to Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

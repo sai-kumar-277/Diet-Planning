@@ -1,52 +1,224 @@
-<div class="container">
+<div class="fade-in-up">
     <h3 class="mb-4">Health Details</h3>
-    <form id="healthForm">
-      <div class="mb-3">
-        <label for="condition" class="form-label">Select Health Condition</label>
-        <select class="form-select" id="condition" name="condition" required>
-          <option value="">-- Select Condition --</option>
-          <option value="Cancer">Cancer</option>
-          <option value="Eye Health">Eye Health</option>
-          <option value="Heart Health">Heart Health</option>
-          <option value="Diabetes">Diabetes</option>
-        </select>
-      </div>
-  
-      <div class="mb-3">
-        <label for="schedule" class="form-label">Tablet Schedule</label>
-        <input type="text" class="form-control" id="schedule" name="schedule" placeholder="e.g. 8:00 AM, 2:00 PM, 9:00 PM" required>
-      </div>
-  
-      <button type="submit" class="btn btn-primary">Save</button>
-    </form>
-  
-    <div id="healthSuccess" class="alert alert-success mt-3" style="display: none;">
-      Health information saved successfully!
+    
+    <div class="row">
+        <div class="col-md-6">
+            <form id="healthForm">
+                <div class="form-group">
+                    <label for="condition" class="mb-1">Select Health Condition</label>
+                    <select class="form-control" id="condition" name="condition" style="background-color: var(--bg-surface);" required>
+                        <option value="">-- Select Condition --</option>
+                        <option value="Cancer">Cancer</option>
+                        <option value="Eye Health">Eye Health</option>
+                        <option value="Heart Health">Heart Health</option>
+                        <option value="Diabetes">Diabetes</option>
+                        <option value="Hypertension">Hypertension</option>
+                        <option value="Thyroid">Thyroid</option>
+                        <option value="PCOS">PCOS</option>
+                        <option value="Obesity">Obesity</option>
+                        <option value="Other">Other (specify below)</option>
+                    </select>
+                </div>
+
+                <!-- Other condition text field (hidden by default) -->
+                <div class="form-group" id="otherConditionGroup" style="display: none;">
+                    <label for="otherCondition" class="mb-1">Specify Condition</label>
+                    <input type="text" class="form-control" id="otherCondition" name="otherCondition" placeholder="e.g. Asthma, Anemia, GERD...">
+                </div>
+
+                <!-- Foods to Avoid -->
+                <div class="form-group">
+                    <label class="mb-1">Foods to Avoid</label>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">
+                        Type a food item and press <kbd style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">Enter</kbd> or <kbd style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">,</kbd> to add
+                    </p>
+                    <div id="avoidTagsContainer" style="
+                        display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px;
+                        background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: var(--border-radius-md); min-height: 48px; align-items: center;
+                        cursor: text; transition: var(--transition-fast);
+                    ">
+                        <input type="text" id="avoidFoodInput" placeholder="e.g. sugar, fried food, red meat..."
+                            style="
+                                background: transparent; border: none; outline: none;
+                                color: var(--text-primary); font-family: var(--font-main);
+                                font-size: 0.95rem; flex: 1; min-width: 120px; padding: 4px 0;
+                            ">
+                    </div>
+                    <input type="hidden" id="avoidFoodsHidden" name="avoid_foods" value="">
+                </div>
+        
+                <div class="form-group">
+                    <label for="schedule" class="mb-1">Tablet Schedule</label>
+                    <input type="text" class="form-control" id="schedule" name="schedule" placeholder="e.g. 8:00 AM, 2:00 PM, 9:00 PM" required>
+                </div>
+        
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Health Data</button>
+            </form>
+            
+            <div id="healthSuccess" class="mt-3 p-2 d-none" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-success); border-radius: 8px;">
+                <i class="fas fa-check-circle"></i> Health information saved successfully!
+            </div>
+        </div>
+        
+        <div class="col-md-6 mt-4 mt-md-0">
+            <div id="savedHealthInfo" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--border-radius-md);">
+                <h4 class="mb-3">Saved Info</h4>
+                <p class="text-secondary">Save your info to see details here.</p>
+            </div>
+        </div>
     </div>
-  
-    <div class="mt-4" id="savedHealthInfo">
-      <!-- Filled with saved health data after submission -->
-    </div>
-  </div>
-  
-  <script>
-    $(document).ready(function () {
-      $('#healthForm').submit(function (e) {
-        e.preventDefault();
-        const formData = {
-          condition: $('#condition').val(),
-          schedule: $('#schedule').val()
-        };
-  
-        $.post('/save_health', formData, function (response) {
-          $('#healthSuccess').show().delay(3000).fadeOut();
-          $('#savedHealthInfo').html(`
-            <h5 class="mt-4">Saved Info</h5>
-            <p><strong>Condition:</strong> ${formData.condition}</p>
-            <p><strong>Tablet Schedule:</strong> ${formData.schedule}</p>
-          `);
-        });
-      });
+</div>
+
+<style>
+.avoid-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 4px 12px;
+    border-radius: var(--border-radius-pill);
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: fadeIn 0.2s ease;
+}
+.avoid-tag .remove-tag {
+    cursor: pointer;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    transition: var(--transition-fast);
+    padding: 2px;
+    border-radius: 50%;
+}
+.avoid-tag .remove-tag:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.3);
+}
+#avoidTagsContainer:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+</style>
+
+<script>
+$(document).ready(function () {
+    let avoidFoods = [];
+
+    // Show/hide "Other" text field
+    $('#condition').on('change', function () {
+        if ($(this).val() === 'Other') {
+            $('#otherConditionGroup').slideDown(200);
+            $('#otherCondition').attr('required', true);
+        } else {
+            $('#otherConditionGroup').slideUp(200);
+            $('#otherCondition').removeAttr('required').val('');
+        }
     });
-  </script>
-  
+
+    // Click container to focus input
+    $('#avoidTagsContainer').on('click', function () {
+        $('#avoidFoodInput').focus();
+    });
+
+    // Add tag on Enter or comma
+    $('#avoidFoodInput').on('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag($(this).val());
+            $(this).val('');
+        }
+        // Remove last tag on Backspace if input is empty
+        if (e.key === 'Backspace' && $(this).val() === '' && avoidFoods.length > 0) {
+            removeTag(avoidFoods.length - 1);
+        }
+    });
+
+    // Also add on blur (when clicking away)
+    $('#avoidFoodInput').on('blur', function () {
+        if ($(this).val().trim()) {
+            addTag($(this).val());
+            $(this).val('');
+        }
+    });
+
+    function addTag(text) {
+        text = text.replace(/,/g, '').trim().toLowerCase();
+        if (!text || avoidFoods.includes(text)) return;
+
+        avoidFoods.push(text);
+        renderTags();
+    }
+
+    function removeTag(index) {
+        avoidFoods.splice(index, 1);
+        renderTags();
+    }
+
+    function renderTags() {
+        // Remove existing tags (keep the input)
+        $('#avoidTagsContainer .avoid-tag').remove();
+
+        avoidFoods.forEach(function (food, i) {
+            const tag = $(`
+                <span class="avoid-tag">
+                    <i class="fas fa-ban" style="font-size: 0.7rem;"></i>
+                    ${food}
+                    <span class="remove-tag" data-index="${i}"><i class="fas fa-times"></i></span>
+                </span>
+            `);
+            tag.find('.remove-tag').on('click', function (e) {
+                e.stopPropagation();
+                removeTag($(this).data('index'));
+            });
+            $('#avoidFoodInput').before(tag);
+        });
+
+        $('#avoidFoodsHidden').val(avoidFoods.join(','));
+    }
+
+    // Form submit
+    $('#healthForm').submit(function (e) {
+        e.preventDefault();
+
+        let condition = $('#condition').val();
+        if (condition === 'Other') {
+            condition = $('#otherCondition').val().trim() || 'Other';
+        }
+
+        const formData = {
+            condition: condition,
+            schedule: $('#schedule').val(),
+            avoid_foods: $('#avoidFoodsHidden').val()
+        };
+
+        $.post('/save_health', formData, function (response) {
+            $('#healthSuccess').removeClass('d-none').show().delay(3000).fadeOut(function(){
+                $(this).addClass('d-none');
+            });
+
+            // Build avoid foods display
+            let avoidHtml = '';
+            if (formData.avoid_foods) {
+                const foods = formData.avoid_foods.split(',');
+                avoidHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">';
+                foods.forEach(f => {
+                    avoidHtml += `<span class="avoid-tag"><i class="fas fa-ban" style="font-size: 0.7rem;"></i> ${f}</span>`;
+                });
+                avoidHtml += '</div>';
+            } else {
+                avoidHtml = '<span class="text-secondary">None specified</span>';
+            }
+
+            $('#savedHealthInfo').html(`
+                <h4 class="mb-3">Saved Info</h4>
+                <p><strong>Condition:</strong> <span class="text-accent">${formData.condition}</span></p>
+                <p><strong>Tablet Schedule:</strong> ${formData.schedule}</p>
+                <p class="mb-1"><strong>Foods to Avoid:</strong></p>
+                ${avoidHtml}
+            `);
+        });
+    });
+});
+</script>

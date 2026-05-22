@@ -1,15 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Manual Entry - NutriTrack{% endblock %}
+
+{% block content %}
+<div class="glass-card fade-in-up" style="max-width: 500px; margin: 0 auto;">
+    <div class="text-center mb-4">
+        <div class="feature-icon-wrapper mx-auto mb-3 text-warning" style="width: 60px; height: 60px; font-size: 1.8rem;">
+            <i class="fas fa-keyboard"></i>
+        </div>
+        <h2 class="mb-1">Manual Entry</h2>
+        <p>Log your food by typing it out.</p>
+    </div>
+
     <form action="/manual-entry" method="POST">
-        <input type="text" name="item" placeholder="Enter food item" required>
-        <input type="number" name="quantity" min="1" value="1" required>
-        <button type="submit">Add</button>
+        <div class="form-group">
+            <label class="mb-1 d-block">Food Item</label>
+            <input type="text" name="item" class="form-control" placeholder="e.g. Banana, Chicken Breast" required>
+        </div>
+        <div class="form-group">
+            <label class="mb-1 d-block">Quantity / Serving</label>
+            <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block mt-4">
+            <i class="fas fa-plus"></i> Add to Log
+        </button>
     </form>    
-</body>
-</html>
+</div>
+{% endblock %}
